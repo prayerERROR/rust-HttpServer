@@ -1,0 +1,10 @@
+[package]
+name = "rust-HttpServer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.99"                                # error handling
+bytes = "1.3.0"                                  # helps manage buffers
+thiserror = "1.0.38"                             # error handling
+threadpool = "1.8.1"
