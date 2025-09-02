@@ -1,5 +1,5 @@
 // parse http request
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 
 pub enum Command {
     Get,
@@ -13,11 +13,16 @@ pub enum Command {
 pub struct ParseResult {
     pub command: Command,
     pub is_close: bool,
+    pub encoding: String,
 }
 
 impl ParseResult {
     fn new() -> Self {
-        Self { command: Command::Error, is_close: false}
+        Self {
+            command: Command::Error,
+            is_close: false,
+            encoding: "None".to_string(),
+        }
     }
 }
 
@@ -63,6 +68,17 @@ pub fn parse(raw_request: &str) -> ParseResult {
     match header_items.get("Connection") {
         Some(val) if val == "close" => {
             ret.is_close = true;
+        },
+        _ => {},
+    }
+
+    // Check if accept encoding
+    match header_items.get("Accept-Encoding") {
+        Some(val) => {
+            let methods: HashSet<&str> = val.split(", ").collect();
+            if methods.contains("gzip") {
+                ret.encoding = "gzip".to_string();
+            }
         },
         _ => {},
     }

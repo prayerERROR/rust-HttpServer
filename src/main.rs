@@ -1,16 +1,16 @@
 #[allow(unused_imports)]
+use threadpool::ThreadPool;
 use std::{
     env,
     io::{Read, Write},
     net::{TcpStream, TcpListener},
 };
-use threadpool::ThreadPool;
 
 mod parser;
 mod response;
 
-use parser::*;
-use response::*;
+use parser::parse;
+use response::generate_response;
 
 // main
 fn main() {
@@ -48,24 +48,17 @@ fn handle_connection(mut stream: TcpStream, file_dir: String) {
         match stream.read(&mut buffer) {
             Ok(0) => break,
             Ok(n) => {
+                // Parse request and generate response
                 let raw_request = std::str::from_utf8(&buffer[..n]).unwrap();
                 let parse_result = parse(raw_request);
                 let is_close = parse_result.is_close;
+                let response = generate_response(&file_dir, parse_result);
 
-                let reply = match parse_result.command {
-                    Command::Get => response_get(is_close),
-                    Command::GetUserAgent(msg) => response_get_user_agent(&msg, is_close),
-                    Command::GetEcho(msg) => response_get_echo(&msg, is_close),
-                    Command::GetFile(file_name) =>
-                        response_get_file(&format!("{file_dir}{file_name}"), is_close),
-                    Command::PostFile(file_name, contents) =>
-                        response_post_file(&format!("{file_dir}{file_name}"), &contents, is_close),
-                    Command::Error => response_error(is_close),
-                };
-
-                stream.write_all(reply.as_bytes()).unwrap();
+                // Return response
+                stream.write_all(&response).unwrap();
                 stream.flush().unwrap();
 
+                // Check if close tcp connection
                 if is_close {
                     break;
                 }
